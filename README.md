@@ -236,6 +236,67 @@ night_end: 6
 
 ---
 
+## AI Agent Integrations
+
+visio-sentinel ships with ready-to-install skills for
+[Hermes Agent](https://github.com/nousresearch/hermes-agent) and
+[OpenClaw](https://github.com/openclaw/openclaw), plus a CLI controller
+(`visio_ctl.py`) designed to be called by those agents.
+
+### visio_ctl.py — CLI controller
+
+```bash
+python visio_ctl.py status              # daemon running? last event?
+python visio_ctl.py events [N=10]       # last N events from the log
+python visio_ctl.py persons             # list known persons
+python visio_ctl.py add-person <name>   # add a known person to skill file
+python visio_ctl.py remove-person <name># remove a known person
+python visio_ctl.py start               # start daemon in background
+python visio_ctl.py stop                # stop daemon
+python visio_ctl.py tail                # stream events live
+```
+
+### Hermes Agent
+
+Install the skill (symlink, so it stays in sync with the repo):
+
+```bash
+bash scripts/install_hermes_skill.sh
+```
+
+Then in Hermes: `/visio-sentinel`
+
+The skill teaches Hermes to call `visio_ctl.py`, interpret event logs,
+manage known persons, and restart the daemon — all from natural language.
+Hermes will prompt you once to set `skills.config.visio_sentinel_dir`.
+
+Manual install:
+
+```bash
+mkdir -p ~/.hermes/skills/smart-home
+ln -s "$(pwd)/skills/hermes/smart-home/visio-sentinel" \
+      ~/.hermes/skills/smart-home/visio-sentinel
+```
+
+### OpenClaw
+
+Install the skill:
+
+```bash
+bash scripts/install_openclaw_skill.sh
+```
+
+Then in any OpenClaw channel: `/visio-sentinel`
+
+Manual install:
+
+```bash
+ln -s "$(pwd)/skills/openclaw/visio-sentinel" \
+      ~/.openclaw/workspace/skills/visio-sentinel
+```
+
+---
+
 ## Telegram Bot Setup
 
 1. Open [@BotFather](https://t.me/BotFather) in Telegram
