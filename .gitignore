@@ -187,3 +187,17 @@ terraform.rc
 # ─── OpenSpec local state ──────────────────────────────────────────────────
 .openspec/.cache/
 .openspec/local.yaml
+
+# ─── visio-sentinel runtime ─────────────────────────────────────────────────
+snapshots/*.jpg
+logs/events.jsonl
+output/
+dataset/known/
+dataset/unknown/
+dataset/manifest.json
+*.gguf
+*.mp4
+*.mov
+*.avi
+*.mkv
+llama.cpp/
