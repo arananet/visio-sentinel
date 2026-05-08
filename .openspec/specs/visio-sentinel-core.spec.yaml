@@ -1,0 +1,78 @@
+title: "visio-sentinel core system"
+slug: "visio-sentinel-core"
+type: feature
+status: review
+
+author: "arananet"
+created_at: "2026-05-07"
+updated_at: "2026-05-07"
+
+description: |
+  Full implementation of visio-sentinel — a vision-based home security system
+  that runs entirely offline on Apple Silicon or NVIDIA GPU hardware.
+
+  The system fine-tunes Moondream2 (a small vision-language model) on a family
+  photo/video dataset, exports it to GGUF format, serves it via local Ollama,
+  and runs an async Python agent that classifies camera frames in real time,
+  logging events and routing alerts (Telegram, optional Home Assistant) based
+  on identity confidence and configurable rules.
+
+  No cloud services, no subscriptions, no hardcoded values — fully driven by
+  .env and training/config.yaml.
+
+acceptance_criteria:
+  - "dataset/prepare.py extracts labeled frames from video/image sources, resizes to 378x378, converts to JPEG q90, splits train/val by --split ratio, appends to manifest.json, and prints a per-label summary"
+  - "dataset/augment.py reads manifest.json, applies the defined albumentations pipeline to train-split images only, writes augmented frames with _aug_N suffix, updates manifest, and respects --factor multiplier"
+  - "training/config.yaml contains all hyperparameters as the single source of truth with no hardcoded values in the training scripts"
+  - "training/finetune.py detects backend (mlx on Darwin, cuda on Linux/Windows with GPU), loads config, builds QA dataset from manifest, and delegates to the correct backend module"
+  - "training/finetune_cuda.py fine-tunes Moondream2 with QLoRA (nf4, double-quant, fp16) via bitsandbytes + peft + transformers.Trainer and saves adapter to output/lora-adapter/"
+  - "training/finetune_mlx.py converts manifest to MLX-LM jsonl format and shells out to mlx_lm.lora with params from config"
+  - "training/merge_lora.py merges the LoRA adapter into base weights for both CUDA (peft merge_and_unload) and MLX (mlx_lm.fuse) paths"
+  - "training/export_gguf.py converts merged model to GGUF q4_K_M by shelling out to llama.cpp tools"
+  - "inference/sampler.py provides an async generator that captures frames from USB or RTSP, applies motion gating, encodes to base64 JPEG, and never crashes on cv2 failure"
+  - "inference/analyzer.py sends frames to the local Ollama /api/generate endpoint, parses NAME|known/unknown|confidence responses, and always returns an AnalysisResult (never raises)"
+  - "agent/agent.py composes sampler → analyzer → rule evaluator → logger → notifiers into a single async loop, handles SIGINT/SIGTERM gracefully, and writes structured JSON lines to LOG_PATH"
+  - "agent/notifiers/telegram.py sends text and optional snapshot image via python-telegram-bot async API without crashing the event loop on failure"
+  - "agent/notifiers/homeassistant.py POSTs JSON events to HA_WEBHOOK_URL when HA_ENABLED=true, silently skips otherwise"
+  - "All runtime configuration is loaded from .env — no hardcoded tokens, URLs, or thresholds anywhere in the codebase"
+  - "Every module has an if __name__ == '__main__' block for isolated testing"
+  - "requirements.txt uses sys_platform guards to separate CUDA/MLX dependencies"
+
+test_plan:
+  - "test_sampler.py: unit test motion gate logic — mock cv2.VideoCapture, verify frames are emitted when pixel diff exceeds threshold and skipped otherwise"
+  - "test_sampler.py: unit test base64 encoding — verify output is a valid base64 JPEG string"
+  - "test_analyzer.py: unit test parse_response — verify correct AnalysisResult for well-formed 'NAME | known | 0.95' responses"
+  - "test_analyzer.py: unit test parse_response — verify error AnalysisResult when response is malformed"
+  - "test_analyzer.py: unit test confidence threshold — verify known=False when confidence < CONFIDENCE_THRESHOLD even if name is recognized"
+  - "test_agent.py: unit test evaluate_rules — verify INFO priority for known person at any hour"
+  - "test_agent.py: unit test evaluate_rules — verify WARNING priority for unknown person during daytime"
+  - "test_agent.py: unit test evaluate_rules — verify CRITICAL priority for unknown person during night window"
+  - "test_agent.py: unit test evaluate_rules — verify unknown treatment when confidence < threshold"
+
+qa_notes: |
+  All tests are unit tests (mocked cv2, mocked httpx, mocked telegram). No
+  real camera, Ollama, or Telegram credentials required to run the test suite.
+
+out_of_scope:
+  - "Web UI or dashboard"
+  - "LangChain or any agent framework"
+  - "Cloud inference or remote model hosting"
+  - "Multi-camera support (single source per run)"
+  - "Face recognition (identity classification is done by the VLM)"
+  - "Automatic Ollama model download (user must run 'ollama create' manually)"
+
+implementation_skill: null
+
+eval_plan:
+  scenarios: []
+  metrics: []
+
+technical_notes: |
+  Backend detection: platform.system() == "Darwin" → mlx; torch.cuda.is_available() → cuda.
+  Ollama API: POST /api/generate with {"model", "prompt", "images": [b64], "stream": false}.
+  Moondream2 native input: 378x378 px.
+  GGUF quantization: q4_K_M via llama.cpp convert_hf_to_gguf.py + llama-quantize.
+  All async — no time.sleep() in the agent loop, no blocking HTTP calls.
+
+linked_issues: []
+linked_prs: []

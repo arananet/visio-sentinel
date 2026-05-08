@@ -12,12 +12,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 project:
-  name: "{{PROJECT_NAME}}"
-  owner: "{{GITHUB_OWNER}}"
-  team: "{{TEAM_NAME}}"
-  domain: "{{PROJECT_DOMAIN}}"
-  description: "{{PROJECT_DESCRIPTION}}"
-  tech_stack: "{{TECH_STACK}}"   # comma-separated, e.g. "python, fastapi, docker"
+  name: "visio-sentinel"
+  owner: "arananet"
+  team: "arananet"
+  domain: "home-security"
+  description: "Vision-based home security system using fine-tuned Moondream2 running locally via Ollama, orchestrated by a lightweight async agent that classifies camera frames and routes alerts based on identity confidence."
+  tech_stack: "python, opencv, docker"
 
 spec:
   required_fields:
@@ -37,7 +37,7 @@ spec:
 
 testing:
   require_tests: true
-  test_command: "{{TEST_COMMAND}}"
+  test_command: "pytest"
   coverage_threshold: null
   fail_on_missing_tests: true
 

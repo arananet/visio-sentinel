@@ -1,0 +1,35 @@
+model:
+  base_id: vikhyatk/moondream2
+  output_dir: ./output
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: ["q_proj", "v_proj"]   # CUDA path only
+
+mlx:
+  lora_layers: 8
+  iters: 1000
+
+training:
+  epochs: 5
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  fp16: true
+  save_steps: 100
+  logging_steps: 10
+  warmup_ratio: 0.05
+
+dataset:
+  manifest: ./dataset/manifest.json
+  image_root: ./dataset
+
+qa_templates:
+  - question: "Who is in this image?"
+    answer_known: "{label}"
+    answer_unknown: "unknown person"
+  - question: "Is this person a known family member?"
+    answer_known: "yes"
+    answer_unknown: "no"
